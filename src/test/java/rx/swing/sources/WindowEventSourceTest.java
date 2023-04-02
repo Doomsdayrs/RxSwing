@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,16 +15,16 @@
  */
 package rx.swing.sources;
 
-import org.junit.Test;
-import org.mockito.Matchers;
-import rx.Subscription;
-import rx.functions.Action0;
-import rx.functions.Action1;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.functions.Action;
+import io.reactivex.rxjava3.functions.Consumer;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
-import javax.swing.JFrame;
 
 import static org.mockito.Mockito.*;
 
@@ -34,40 +34,36 @@ public class WindowEventSourceTest {
     public void testObservingWindowEvents() throws Throwable {
         if (GraphicsEnvironment.isHeadless())
             return;
-        SwingTestHelper.create().runInEventDispatchThread(new Action0() {
-            @Override
-            public void call() {
-                JFrame owner = new JFrame();
-                Window window = new Window(owner);
+        SwingTestHelper.create().runInEventDispatchThread(() -> {
+            JFrame owner = new JFrame();
+            Window window = new Window(owner);
 
-                @SuppressWarnings("unchecked")
-                Action1<WindowEvent> action = mock(Action1.class);
-                @SuppressWarnings("unchecked")
-                Action1<Throwable> error = mock(Action1.class);
-                Action0 complete = mock(Action0.class);
+            @SuppressWarnings("unchecked")
+            Consumer<WindowEvent> action = mock(Consumer.class);
+            @SuppressWarnings("unchecked")
+            Consumer<Throwable> error = mock(Consumer.class);
+            Action complete = mock(Action.class);
 
-                final WindowEvent event = mock(WindowEvent.class);
+            final WindowEvent event = mock(WindowEvent.class);
 
-                Subscription sub = WindowEventSource.fromWindowEventsOf(window)
-                        .subscribe(action, error, complete);
+            Disposable sub = WindowEventSource.fromWindowEventsOf(window)
+                    .subscribe(action, error, complete);
 
-                verify(action, never()).call(Matchers.<WindowEvent>any());
-                verify(error, never()).call(Matchers.<Throwable>any());
-                verify(complete, never()).call();
+            verify(action, never()).accept(ArgumentMatchers.any());
+            verify(error, never()).accept(ArgumentMatchers.any());
+            verify(complete, never()).run();
 
-                fireWindowEvent(window, event);
-                verify(action, times(1)).call(Matchers.<WindowEvent>any());
+            fireWindowEvent(window, event);
+            verify(action, times(1)).accept(ArgumentMatchers.any());
 
-                fireWindowEvent(window, event);
-                verify(action, times(2)).call(Matchers.<WindowEvent> any());
+            fireWindowEvent(window, event);
+            verify(action, times(2)).accept(ArgumentMatchers.any());
 
-                sub.unsubscribe();
-                fireWindowEvent(window, event);
-                verify(action, times(2)).call(Matchers.<WindowEvent> any());
-                verify(error, never()).call(Matchers.<Throwable> any());
-                verify(complete, never()).call();
-            }
-
+            sub.dispose();
+            fireWindowEvent(window, event);
+            verify(action, times(2)).accept(ArgumentMatchers.any());
+            verify(error, never()).accept(ArgumentMatchers.any());
+            verify(complete, never()).run();
         }).awaitTerminal();
     }
 

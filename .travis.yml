@@ -1,6 +1,6 @@
 language: java
 jdk:
-- oraclejdk7
+- oraclejdk17
 sudo: false
 script: gradle/buildViaTravis.sh
 cache:

@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,10 +15,8 @@
  */
 package rx.observables;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.beans.PropertyChangeEvent;
-import java.util.Set;
+import io.reactivex.rxjava3.core.Observable;
+import rx.swing.sources.*;
 
 import javax.swing.*;
 import javax.swing.colorchooser.ColorSelectionModel;
@@ -26,21 +24,21 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.text.Document;
-
-import rx.Observable;
-import rx.functions.Func1;
-import rx.swing.sources.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.beans.PropertyChangeEvent;
+import java.util.Set;
 
 /**
- * Allows creating observables from various sources specific to Swing. 
+ * Allows creating observables from various sources specific to Swing.
  */
-public enum SwingObservable { ; // no instances
+public enum SwingObservable {
+    ; // no instances
 
     /**
      * Creates an observable corresponding to a Swing button action.
-     * 
-     * @param button 
-     *            The button to register the observable for.
+     *
+     * @param button The button to register the observable for.
      * @return Observable of action events.
      */
     public static Observable<ActionEvent> fromButtonAction(AbstractButton button) {
@@ -49,9 +47,8 @@ public enum SwingObservable { ; // no instances
 
     /**
      * Creates an observable corresponding to raw key events.
-     * 
-     * @param component
-     *            The component to register the observable for.
+     *
+     * @param component The component to register the observable for.
      * @return Observable of key events.
      */
     public static Observable<KeyEvent> fromKeyEvents(Component component) {
@@ -60,25 +57,19 @@ public enum SwingObservable { ; // no instances
 
     /**
      * Creates an observable corresponding to raw key events, restricted a set of given key codes.
-     * 
-     * @param component
-     *            The component to register the observable for.
+     *
+     * @param component The component to register the observable for.
      * @return Observable of key events.
      */
     public static Observable<KeyEvent> fromKeyEvents(Component component, final Set<Integer> keyCodes) {
-        return fromKeyEvents(component).filter(new Func1<KeyEvent, Boolean>() {
-            @Override
-            public Boolean call(KeyEvent event) {
-                return keyCodes.contains(event.getKeyCode());
-            }
-        });
+        return fromKeyEvents(component).filter(event -> keyCodes.contains(event.getKeyCode()));
     }
 
     /**
      * Creates an observable that emits the set of all currently pressed keys each time
-     * this set changes. 
-     * @param component
-     *            The component to register the observable for.
+     * this set changes.
+     *
+     * @param component The component to register the observable for.
      * @return Observable of currently pressed keys.
      */
     public static Observable<Set<Integer>> fromPressedKeys(Component component) {
@@ -87,9 +78,8 @@ public enum SwingObservable { ; // no instances
 
     /**
      * Creates an observable corresponding to raw mouse events (excluding mouse motion events).
-     * 
-     * @param component
-     *            The component to register the observable for.
+     *
+     * @param component The component to register the observable for.
      * @return Observable of mouse events.
      */
     public static Observable<MouseEvent> fromMouseEvents(Component component) {
@@ -98,19 +88,18 @@ public enum SwingObservable { ; // no instances
 
     /**
      * Creates an observable corresponding to raw mouse motion events.
-     * 
-     * @param component
-     *            The component to register the observable for.
+     *
+     * @param component The component to register the observable for.
      * @return Observable of mouse motion events.
      */
     public static Observable<MouseEvent> fromMouseMotionEvents(Component component) {
         return MouseEventSource.fromMouseMotionEventsOf(component);
     }
-    
+
     /**
      * Creates an observable corresponding to relative mouse motion.
-     * @param component
-     *            The component to register the observable for.
+     *
+     * @param component The component to register the observable for.
      * @return A point whose x and y coordinate represent the relative horizontal and vertical mouse motion.
      */
     public static Observable<Point> fromRelativeMouseMotion(Component component) {
@@ -120,19 +109,17 @@ public enum SwingObservable { ; // no instances
     /**
      * Creates an observable corresponding to raw mouse wheel events.
      *
-     * @param component
-     *            The component to register the observable for.
+     * @param component The component to register the observable for.
      * @return The component to register the observable for.
      */
     public static Observable<MouseWheelEvent> fromMouseWheelEvents(Component component) {
         return MouseEventSource.fromMouseWheelEvents(component);
     }
-    
+
     /**
      * Creates an observable corresponding to raw component events.
-     * 
-     * @param component
-     *            The component to register the observable for.
+     *
+     * @param component The component to register the observable for.
      * @return Observable of component events.
      */
     public static Observable<ComponentEvent> fromComponentEvents(Component component) {
@@ -142,8 +129,7 @@ public enum SwingObservable { ; // no instances
     /**
      * Creates an observable corresponding to focus events.
      *
-     * @param component
-     *            The component to register the observable for.
+     * @param component The component to register the observable for.
      * @return Observable of focus events.
      */
     public static Observable<FocusEvent> fromFocusEvents(Component component) {
@@ -152,9 +138,8 @@ public enum SwingObservable { ; // no instances
 
     /**
      * Creates an observable corresponding to component resize events.
-     * 
-     * @param component
-     *            The component to register the observable for.
+     *
+     * @param component The component to register the observable for.
      * @return Observable emitting the current size of the given component after each resize event.
      */
     public static Observable<Dimension> fromResizing(Component component) {
@@ -163,93 +148,70 @@ public enum SwingObservable { ; // no instances
 
     /**
      * Creates an observable corresponding to item events.
-     * 
-     * @param itemSelectable
-     *            The ItemSelectable to register the observable for.
+     *
+     * @param itemSelectable The ItemSelectable to register the observable for.
      * @return Observable emitting the item events for the given itemSelectable.
      */
     public static Observable<ItemEvent> fromItemEvents(ItemSelectable itemSelectable) {
         return ItemEventSource.fromItemEventsOf(itemSelectable);
     }
-    
+
     /**
      * Creates an observable corresponding to item selection events.
-     * 
-     * @param itemSelectable
-     *            The ItemSelectable to register the observable for.
-     * @return Observable emitting the an item event whenever the given itemSelectable is selected.
+     *
+     * @param itemSelectable The ItemSelectable to register the observable for.
+     * @return Observable emitting the item event whenever the given itemSelectable is selected.
      */
     public static Observable<ItemEvent> fromItemSelectionEvents(ItemSelectable itemSelectable) {
-        return ItemEventSource.fromItemEventsOf(itemSelectable).filter(new Func1<ItemEvent, Boolean>() {
-            @Override
-            public Boolean call(ItemEvent event) {
-                return event.getStateChange() == ItemEvent.SELECTED;
-            }
-        });
+        return ItemEventSource.fromItemEventsOf(itemSelectable).filter(event -> event.getStateChange() == ItemEvent.SELECTED);
     }
-    
+
     /**
      * Creates an observable corresponding to item deselection events.
-     * 
-     * @param itemSelectable
-     *            The ItemSelectable to register the observable for.
-     * @return Observable emitting the an item event whenever the given itemSelectable is deselected.
+     *
+     * @param itemSelectable The ItemSelectable to register the observable for.
+     * @return Observable emitting the item event whenever the given itemSelectable is deselected.
      */
     public static Observable<ItemEvent> fromItemDeselectionEvents(ItemSelectable itemSelectable) {
-        return ItemEventSource.fromItemEventsOf(itemSelectable).filter(new Func1<ItemEvent, Boolean>() {
-            @Override
-            public Boolean call(ItemEvent event) {
-                return event.getStateChange() == ItemEvent.DESELECTED;
-            }
-        });
+        return ItemEventSource.fromItemEventsOf(itemSelectable).filter(event -> event.getStateChange() == ItemEvent.DESELECTED);
     }
 
     /**
      * Creates an observable corresponding to list selection events (e.g. from a JList or a JTable row / column selection).
-     *
+     * <p>
      * For more info to swing list selection see <a href="https://docs.oracle.com/javase/tutorial/uiswing/events/listselectionlistener.html">
-	 * How to Write a List Selection Listener</a>.
+     * How to Write a List Selection Listener</a>.
      *
-     * @param listSelectionModel
-     *            The ListSelectionModel to register the observable for.
+     * @param listSelectionModel The ListSelectionModel to register the observable for.
      * @return Observable emitting the list selection events.
      */
     public static Observable<ListSelectionEvent> fromListSelectionEvents(ListSelectionModel listSelectionModel) {
         return ListSelectionEventSource.fromListSelectionEventsOf(listSelectionModel);
     }
-    
+
     /**
      * Creates an observable corresponding to property change events.
-     * 
-     * @param component
-     *            The component to register the observable for.
+     *
+     * @param component The component to register the observable for.
      * @return Observable of property change events for the given component
      */
     public static Observable<PropertyChangeEvent> fromPropertyChangeEvents(Component component) {
         return PropertyChangeEventSource.fromPropertyChangeEventsOf(component);
     }
-    
+
     /**
      * Creates an observable corresponding to property change events filtered by property name.
-     * 
-     * @param component
-     *            The component to register the observable for.
-     * @param propertyName
-     *            A property name to filter the property events on.
+     *
+     * @param component    The component to register the observable for.
+     * @param propertyName A property name to filter the property events on.
      * @return Observable of property change events for the given component, filtered by the provided property name
      */
     public static Observable<PropertyChangeEvent> fromPropertyChangeEvents(Component component, final String propertyName) {
-        return fromPropertyChangeEvents(component).filter(new Func1<PropertyChangeEvent, Boolean>() {
-            @Override
-            public Boolean call(PropertyChangeEvent event) {
-                return event.getPropertyName().equals(propertyName);
-            }
-        });
+        return fromPropertyChangeEvents(component).filter(event -> event.getPropertyName().equals(propertyName));
     }
 
     /**
-     * @param window
-     *      The window to register the observable for
+     * @param window The window to register the observable for
      * @return Observable of window events for the given window
      */
     public static Observable<WindowEvent> fromWindowEventsOf(Window window) {
@@ -270,18 +232,13 @@ public enum SwingObservable { ; // no instances
      * Creates an observable corresponding to document events restricted to a
      * set of given event types.
      *
-     * @param document The document to register the observable for.
+     * @param document   The document to register the observable for.
      * @param eventTypes The set of event types for which the observable should
-     * emit document events.
+     *                   emit document events.
      * @return Observable of document events.
      */
     public static Observable<DocumentEvent> fromDocumentEvents(Document document, final Set<DocumentEvent.EventType> eventTypes) {
-        return fromDocumentEvents(document).filter(new Func1<DocumentEvent, Boolean>() {
-            @Override
-            public Boolean call(DocumentEvent event) {
-                return eventTypes.contains(event.getType());
-            }
-        });
+        return fromDocumentEvents(document).filter(event -> eventTypes.contains(event.getType()));
     }
 
     /**
@@ -290,8 +247,7 @@ public enum SwingObservable { ; // no instances
      * For more info to change listeners and events see <a href="https://docs.oracle.com/javase/tutorial/uiswing/events/changelistener.html">
      * How to Write a Change Listener</a>.
      *
-     * @param component
-     * 		The component to register the observable for.
+     * @param component The component to register the observable for.
      * @return Observable emitting the change events.
      */
     public static Observable<ChangeEvent> fromChangeEvents(JTabbedPane component) {
@@ -304,8 +260,7 @@ public enum SwingObservable { ; // no instances
      * For more info to change listeners and events see <a href="https://docs.oracle.com/javase/tutorial/uiswing/events/changelistener.html">
      * How to Write a Change Listener</a>.
      *
-     * @param component
-     * 		The component to register the observable for.
+     * @param component The component to register the observable for.
      * @return Observable emitting the change events.
      */
     public static Observable<ChangeEvent> fromChangeEvents(JSlider component) {
@@ -319,8 +274,7 @@ public enum SwingObservable { ; // no instances
      * How to Write a Change Listener</a> and <a href="https://docs.oracle.com/javase/tutorial/uiswing/components/spinner.html#change">
      * How to Use Spinners</a>.
      *
-     * @param component
-     * 		The component to register the observable for.
+     * @param component The component to register the observable for.
      * @return Observable emitting the change events.
      */
     public static Observable<ChangeEvent> fromChangeEvents(JSpinner component) {
@@ -334,8 +288,7 @@ public enum SwingObservable { ; // no instances
      * How to Write a Change Listener</a> and <a href="https://docs.oracle.com/javase/tutorial/uiswing/components/spinner.html#change">
      * How to Use Spinners</a>.
      *
-     * @param spinnerModel
-     * 		The spinnerModel to register the observable for.
+     * @param spinnerModel The spinnerModel to register the observable for.
      * @return Observable emitting the change events.
      */
     public static Observable<ChangeEvent> fromChangeEvents(SpinnerModel spinnerModel) {
@@ -348,8 +301,7 @@ public enum SwingObservable { ; // no instances
      * For more info to change listeners and events see <a href="https://docs.oracle.com/javase/tutorial/uiswing/events/changelistener.html">
      * How to Write a Change Listener</a>.
      *
-     * @param component
-     * 		The component to register the observable for.
+     * @param component The component to register the observable for.
      * @return Observable emitting the change events.
      */
     public static Observable<ChangeEvent> fromChangeEvents(AbstractButton component) {
@@ -362,8 +314,7 @@ public enum SwingObservable { ; // no instances
      * For more info to change listeners and events see <a href="https://docs.oracle.com/javase/tutorial/uiswing/events/changelistener.html">
      * How to Write a Change Listener</a>.
      *
-     * @param buttonModel
-     * 		The buttonModel to register the observable for.
+     * @param buttonModel The buttonModel to register the observable for.
      * @return Observable emitting the change events.
      */
     public static Observable<ChangeEvent> fromChangeEvents(ButtonModel buttonModel) {
@@ -376,8 +327,7 @@ public enum SwingObservable { ; // no instances
      * For more info to change listeners and events see <a href="https://docs.oracle.com/javase/tutorial/uiswing/events/changelistener.html">
      * How to Write a Change Listener</a>.
      *
-     * @param component
-     * 		The component to register the observable for.
+     * @param component The component to register the observable for.
      * @return Observable emitting the change events.
      */
     public static Observable<ChangeEvent> fromChangeEvents(JViewport component) {
@@ -390,8 +340,7 @@ public enum SwingObservable { ; // no instances
      * For more info to change listeners and events see <a href="https://docs.oracle.com/javase/tutorial/uiswing/events/changelistener.html">
      * How to Write a Change Listener</a>.
      *
-     * @param colorSelectionModel
-     * 		The colorSelectionModel to register the observable for.
+     * @param colorSelectionModel The colorSelectionModel to register the observable for.
      * @return Observable emitting the change events.
      */
     public static Observable<ChangeEvent> fromChangeEvents(ColorSelectionModel colorSelectionModel) {
@@ -404,8 +353,7 @@ public enum SwingObservable { ; // no instances
      * For more info to change listeners and events see <a href="https://docs.oracle.com/javase/tutorial/uiswing/events/changelistener.html">
      * How to Write a Change Listener</a>.
      *
-     * @param component
-     * 		The component to register the observable for.
+     * @param component The component to register the observable for.
      * @return Observable emitting the change events.
      */
     public static Observable<ChangeEvent> fromChangeEvents(JProgressBar component) {
@@ -418,8 +366,7 @@ public enum SwingObservable { ; // no instances
      * For more info to change listeners and events see <a href="https://docs.oracle.com/javase/tutorial/uiswing/events/changelistener.html">
      * How to Write a Change Listener</a>.
      *
-     * @param boundedRangeModel
-     * 		The boundedRangeModel to register the observable for.
+     * @param boundedRangeModel The boundedRangeModel to register the observable for.
      * @return Observable emitting the change events.
      */
     public static Observable<ChangeEvent> fromChangeEvents(BoundedRangeModel boundedRangeModel) {
@@ -429,8 +376,7 @@ public enum SwingObservable { ; // no instances
     /**
      * Creates an observable corresponding to container events (e.g. component added).
      *
-     * @param container
-     *      The container to register the observable for.
+     * @param container The container to register the observable for.
      * @return Observable emitting the container events.
      */
     public static Observable<ContainerEvent> fromContainerEvents(Container container) {
@@ -440,28 +386,26 @@ public enum SwingObservable { ; // no instances
     /**
      * Creates an observable corresponding to hierarchy events (e.g. parent added).
      *
-     * @param component
-     * 		The {@link Component} to register the observable for.
+     * @param component The {@link Component} to register the observable for.
      * @return Observable emitting hierarchy events for the provided component.
      */
-    public static Observable<HierarchyEvent> fromHierachyEvents(Component component) {
+    public static Observable<HierarchyEvent> fromHierarchyEvents(Component component) {
         return HierarchyEventSource.fromHierarchyEventsOf(component);
     }
 
     /**
      * Creates an observable corresponding to hierarchy bounds events (e.g. parent resized).
      *
-     * @param component
-     *      The {@link Component} to register the observable for.
+     * @param component The {@link Component} to register the observable for.
      * @return Observable emitting hierarchy bounds events for the provided component.
      */
-    public static Observable<HierarchyEvent> fromHierachyBoundsEvents(Component component) {
+    public static Observable<HierarchyEvent> fromHierarchyBoundsEvents(Component component) {
         return HierarchyEventSource.fromHierarchyBoundsEventsOf(component);
     }
 
     /**
-     * Check if the current thead is the event dispatch thread.
-     * 
+     * Check if the current thread is the event dispatch thread.
+     *
      * @throws IllegalStateException if the current thread is not the event dispatch thread.
      */
     public static void assertEventDispatchThread() {

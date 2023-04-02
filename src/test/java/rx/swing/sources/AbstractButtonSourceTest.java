@@ -1,12 +1,12 @@
 /**
  * Copyright 2014 Netflix, Inc.
- * 
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,65 +15,56 @@
  */
 package rx.swing.sources;
 
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.functions.Action;
+import io.reactivex.rxjava3.functions.Consumer;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+
+import javax.swing.*;
 import java.awt.event.ActionEvent;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
-import org.junit.Test;
-import org.mockito.Matchers;
-
-import javax.swing.AbstractButton;
-
-import rx.Subscription;
-import rx.functions.Action0;
-import rx.functions.Action1;
 
 public class AbstractButtonSourceTest {
     @Test
     public void testObservingActionEvents() throws Throwable {
-        SwingTestHelper.create().runInEventDispatchThread(new Action0() {
+        SwingTestHelper.create().runInEventDispatchThread(() -> {
+            @SuppressWarnings("unchecked")
+            Consumer<ActionEvent> action = mock(Consumer.class);
+            @SuppressWarnings("unchecked")
+            Consumer<Throwable> error = mock(Consumer.class);
+            Action complete = mock(Action.class);
 
-            @Override
-            public void call() {
-                @SuppressWarnings("unchecked")
-                Action1<ActionEvent> action = mock(Action1.class);
-                @SuppressWarnings("unchecked")
-                Action1<Throwable> error = mock(Action1.class);
-                Action0 complete = mock(Action0.class);
+            final ActionEvent event = new ActionEvent(this, 1, "command");
 
-                final ActionEvent event = new ActionEvent(this, 1, "command");
-
-                @SuppressWarnings("serial")
-                class TestButton extends AbstractButton {
-                    void testAction() {
-                        fireActionPerformed(event);
-                    }
+            class TestButton extends AbstractButton {
+                void testAction() {
+                    fireActionPerformed(event);
                 }
-
-                TestButton button = new TestButton();
-                Subscription sub = AbstractButtonSource.fromActionOf(button).subscribe(action,
-                        error, complete);
-
-                verify(action, never()).call(Matchers.<ActionEvent> any());
-                verify(error, never()).call(Matchers.<Throwable> any());
-                verify(complete, never()).call();
-
-                button.testAction();
-                verify(action, times(1)).call(Matchers.<ActionEvent> any());
-
-                button.testAction();
-                verify(action, times(2)).call(Matchers.<ActionEvent> any());
-
-                sub.unsubscribe();
-                button.testAction();
-                verify(action, times(2)).call(Matchers.<ActionEvent> any());
-                verify(error, never()).call(Matchers.<Throwable> any());
-                verify(complete, never()).call();
             }
 
+            TestButton button = new TestButton();
+            Disposable sub = AbstractButtonSource.fromActionOf(button).subscribe(action,
+                    error, complete);
+
+            verify(action, never()).accept(ArgumentMatchers.any());
+            verify(error, never()).accept(ArgumentMatchers.any());
+            verify(complete, never()).run();
+
+            button.testAction();
+
+            verify(action, times(1)).accept(ArgumentMatchers.any());
+
+            button.testAction();
+            verify(action, times(2)).accept(ArgumentMatchers.any());
+
+            sub.dispose();
+            button.testAction();
+            verify(action, times(2)).accept(ArgumentMatchers.any());
+            verify(error, never()).accept(ArgumentMatchers.any());
+            verify(complete, never()).run();
         }).awaitTerminal();
     }
 }

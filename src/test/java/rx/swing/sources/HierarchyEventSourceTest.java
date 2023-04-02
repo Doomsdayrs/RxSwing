@@ -1,12 +1,12 @@
 /**
  * Copyright 2015 Netflix, Inc.
- * 
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,135 +15,107 @@
  */
 package rx.swing.sources;
 
-import static org.mockito.Mockito.mock;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.functions.Action;
+import io.reactivex.rxjava3.functions.Consumer;
+import io.reactivex.rxjava3.functions.Function;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentMatcher;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
+import rx.observables.SwingObservable;
 
-import java.awt.Component;
-import java.awt.Container;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.HierarchyEvent;
 import java.awt.event.HierarchyListener;
 import java.util.Arrays;
 import java.util.Collection;
 
-import javax.swing.JPanel;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
 
-import org.hamcrest.Matcher;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
-import org.mockito.ArgumentMatcher;
-import org.mockito.Matchers;
-import org.mockito.Mockito;
-
-import rx.Observable;
-import rx.Subscription;
-import rx.functions.Action0;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.observables.SwingObservable;
-
-@RunWith(Parameterized.class)
 public class HierarchyEventSourceTest {
 
+    private final Function<Component, Observable<HierarchyEvent>> observableFactory;
     private JPanel rootPanel;
     private JPanel parentPanel;
-    private Action1<HierarchyEvent> action;
-    private Action1<Throwable> error;
-    private Action0 complete;
-    private final Func1<Component, Observable<HierarchyEvent>> observableFactory;
-    
-    public HierarchyEventSourceTest( Func1<Component, Observable<HierarchyEvent>> observableFactory ) {
+    private Consumer<HierarchyEvent> action;
+    private Consumer<Throwable> error;
+    private Action complete;
+
+    public HierarchyEventSourceTest(Function<Component, Observable<HierarchyEvent>> observableFactory) {
         this.observableFactory = observableFactory;
     }
-    
-    @Parameters
+
     public static Collection<Object[]> data() {
-        return Arrays.asList( new Object[][]{ { ObservablefromEventSource() }, 
-                                              { ObservablefromSwingObservable() } });
+        return Arrays.asList(new Object[][]{{ObservableFromEventSource()},
+                {ObservableFromSwingObservable()}});
     }
-    
+
+    private static Function<Component, Observable<HierarchyEvent>> ObservableFromEventSource() {
+        return HierarchyEventSource::fromHierarchyEventsOf;
+    }
+
+    private static Function<Component, Observable<HierarchyEvent>> ObservableFromSwingObservable() {
+        return SwingObservable::fromHierarchyEvents;
+    }
+
     @SuppressWarnings("unchecked")
-    @Before
+    @BeforeAll
     public void setup() {
         rootPanel = new JPanel();
         parentPanel = new JPanel();
-        
-        action = mock(Action1.class);
-        error = mock(Action1.class);
-        complete = mock(Action0.class);
+
+        action = mock(Consumer.class);
+        error = mock(Consumer.class);
+        complete = mock(Action.class);
     }
-    
-    @Test
+
+    @ParameterizedTest
+    @MethodSource("data")
     public void testObservingHierarchyEvents() throws Throwable {
-        SwingTestHelper.create().runInEventDispatchThread(new Action0() {
-            @Override
-            public void call() {
-                JPanel childPanel = Mockito.spy(new JPanel());
-                parentPanel.add(childPanel);
+        SwingTestHelper.create().runInEventDispatchThread(() -> {
+            JPanel childPanel = Mockito.spy(new JPanel());
+            parentPanel.add(childPanel);
 
-                Subscription subscription = observableFactory.call(childPanel)
-                                                             .subscribe(action, error, complete);
+            Disposable subscription = observableFactory.apply(childPanel)
+                    .subscribe(action, error, complete);
 
-                rootPanel.add(parentPanel);
+            rootPanel.add(parentPanel);
 
-                Mockito.verify(action).call(Matchers.argThat(hierarchyEventMatcher(childPanel, HierarchyEvent.PARENT_CHANGED, parentPanel, rootPanel)));
-                Mockito.verify(error, Mockito.never()).call(Mockito.any(Throwable.class));
-                Mockito.verify(complete, Mockito.never()).call();
+            Mockito.verify(action).accept(ArgumentMatchers.argThat(hierarchyEventMatcher(childPanel, HierarchyEvent.PARENT_CHANGED, parentPanel, rootPanel)));
+            Mockito.verify(error, Mockito.never()).accept(Mockito.any(Throwable.class));
+            Mockito.verify(complete, Mockito.never()).run();
 
-                // Verifies that the underlying listener has been removed.
-                subscription.unsubscribe();
-                Mockito.verify(childPanel).removeHierarchyListener(Mockito.any(HierarchyListener.class));
-                Assert.assertEquals(0, childPanel.getHierarchyListeners().length);
+            // Verifies that the underlying listener has been removed.
+            subscription.dispose();
+            Mockito.verify(childPanel).removeHierarchyListener(Mockito.any(HierarchyListener.class));
+            assertEquals(0, childPanel.getHierarchyListeners().length);
 
-                // Sanity check to verify that no more events are emitted after unsubscribing.
-                rootPanel.remove(parentPanel);
-                Mockito.verifyNoMoreInteractions(action, error, complete);
-            }
+            // Sanity check to verify that no more events are emitted after unsubscribing.
+            rootPanel.remove(parentPanel);
+            Mockito.verifyNoMoreInteractions(action, error, complete);
         }).awaitTerminal();
     }
 
-    private Matcher<HierarchyEvent> hierarchyEventMatcher(final Component source, final int changeFlags, final Container changed, final Container changedParent) {
-        return new ArgumentMatcher<HierarchyEvent>() {
-            @Override
-            public boolean matches(Object argument) {
-                if (argument.getClass() != HierarchyEvent.class)
-                    return false;
+    private ArgumentMatcher<HierarchyEvent> hierarchyEventMatcher(final Component source, @SuppressWarnings("SameParameterValue") final int changeFlags, final Container changed, final Container changedParent) {
+        return argument -> {
+            if (source != argument.getComponent())
+                return false;
 
-                HierarchyEvent event = (HierarchyEvent) argument;
+            if (changed != argument.getChanged())
+                return false;
 
-                if (source != event.getComponent())
-                    return false;
+            if (changedParent != argument.getChangedParent())
+                return false;
 
-                if (changed != event.getChanged())
-                    return false;
-
-                if (changedParent != event.getChangedParent())
-                    return false;
-
-                return changeFlags == event.getChangeFlags();
-            }
-        };
-    }
-    
-    private static Func1<Component, Observable<HierarchyEvent>> ObservablefromEventSource()
-    {
-        return new Func1<Component, Observable<HierarchyEvent>>() {
-            @Override
-            public Observable<HierarchyEvent> call(Component component) {
-                return HierarchyEventSource.fromHierarchyEventsOf(component);
-            }
-        };
-    }
-    
-    private static Func1<Component, Observable<HierarchyEvent>> ObservablefromSwingObservable()
-    {
-        return new Func1<Component, Observable<HierarchyEvent>>() {
-            @Override
-            public Observable<HierarchyEvent> call(Component component) {
-                return SwingObservable.fromHierachyEvents(component);
-            }
+            return changeFlags == argument.getChangeFlags();
         };
     }
 }

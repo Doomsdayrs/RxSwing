@@ -15,10 +15,8 @@
  */
 package rx.swing.sources;
 
-import org.junit.Test;
-import rx.Subscription;
-import rx.functions.Action0;
-import rx.observers.TestSubscriber;
+import io.reactivex.rxjava3.observers.TestObserver;
+import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
 import javax.swing.colorchooser.ColorSelectionModel;
@@ -28,453 +26,408 @@ import java.awt.*;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 
 public class ChangeEventSourceTest {
 
-	@Test
-	public void jTabbedPane_observingSelectionEvents() throws Throwable {
-		SwingTestHelper.create().runInEventDispatchThread(new Action0() {
+    private static JTabbedPane createTabbedPane() {
+        final JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.addTab("tab1", new JPanel());
+        tabbedPane.addTab("tab2", new JPanel());
+        tabbedPane.addTab("tab3", new JPanel());
+        return tabbedPane;
+    }
 
-			@Override
-			public void call() {
-				TestSubscriber<ChangeEvent> testSubscriber = TestSubscriber.create();
+    private static JSpinner createSpinner() {
+        List<String> yearStrings = Arrays.asList("2014", "2015", "2016");
+        SpinnerListModel spinnerListModel = new SpinnerListModel(yearStrings);
+        return new JSpinner(spinnerListModel);
+    }
 
-				JTabbedPane tabbedPane = createTabbedPane();
-				ChangeEventSource.fromChangeEventsOf(tabbedPane)
-						.subscribe(testSubscriber);
+    @Test
+    public void jTabbedPane_observingSelectionEvents() throws Throwable {
+        SwingTestHelper.create().runInEventDispatchThread(() -> {
+            TestObserver<ChangeEvent> testSubscriber = TestObserver.create();
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertNoValues();
+            JTabbedPane tabbedPane = createTabbedPane();
+            ChangeEventSource.fromChangeEventsOf(tabbedPane)
+                    .subscribe(testSubscriber);
 
-				tabbedPane.setSelectedIndex(2);
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertNoValues();
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(1);
+            tabbedPane.setSelectedIndex(2);
 
-				assertEquals(tabbedPane, testSubscriber.getOnNextEvents().get(0).getSource());
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(1);
 
-				tabbedPane.setSelectedIndex(0);
+            testSubscriber.assertValueAt(0, (changeEvent -> changeEvent.getSource() == tabbedPane));
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(2);
+            tabbedPane.setSelectedIndex(0);
 
-				assertEquals(tabbedPane, testSubscriber.getOnNextEvents().get(1).getSource());
-			}
-		}).awaitTerminal();
-	}
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(2);
 
-	@Test
-	public void jSlider_observingValueChangeEvents() throws Throwable {
-		SwingTestHelper.create().runInEventDispatchThread(new Action0() {
+            testSubscriber.assertValueAt(1, (changeEvent -> changeEvent.getSource() == tabbedPane));
+        }).awaitTerminal();
+    }
 
-			@Override
-			public void call() {
-				TestSubscriber<ChangeEvent> testSubscriber = TestSubscriber.create();
+    @Test
+    public void jSlider_observingValueChangeEvents() throws Throwable {
+        SwingTestHelper.create().runInEventDispatchThread(() -> {
+            TestObserver<ChangeEvent> testSubscriber = TestObserver.create();
 
-				JSlider slider = new JSlider();
-				slider.setMinimum(0);
-				slider.setMaximum(10);
-				ChangeEventSource.fromChangeEventsOf(slider)
-						.subscribe(testSubscriber);
+            JSlider slider = new JSlider();
+            slider.setMinimum(0);
+            slider.setMaximum(10);
+            ChangeEventSource.fromChangeEventsOf(slider)
+                    .subscribe(testSubscriber);
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertNoValues();
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertNoValues();
 
-				slider.setValue(5);
+            slider.setValue(5);
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(1);
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(1);
 
-				assertEquals(slider, testSubscriber.getOnNextEvents().get(0).getSource());
+            testSubscriber.assertValueAt(0, (changeEvent -> changeEvent.getSource() == slider));
 
-				slider.setValue(8);
+            slider.setValue(8);
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(2);
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(2);
 
-				assertEquals(slider, testSubscriber.getOnNextEvents().get(1).getSource());
-			}
-		}).awaitTerminal();
-	}
+            testSubscriber.assertValueAt(1, (changeEvent -> changeEvent.getSource() == slider));
+        }).awaitTerminal();
+    }
 
-	@Test
-	public void jSpinner_observingValueChangeEvents() throws Throwable {
-		SwingTestHelper.create().runInEventDispatchThread(new Action0() {
+    @Test
+    public void jSpinner_observingValueChangeEvents() throws Throwable {
+        SwingTestHelper.create().runInEventDispatchThread(() -> {
+            TestObserver<ChangeEvent> testSubscriber = TestObserver.create();
 
-			@Override
-			public void call() {
-				TestSubscriber<ChangeEvent> testSubscriber = TestSubscriber.create();
+            JSpinner spinner = createSpinner();
+            ChangeEventSource.fromChangeEventsOf(spinner)
+                    .subscribe(testSubscriber);
 
-				JSpinner spinner = createSpinner();
-				ChangeEventSource.fromChangeEventsOf(spinner)
-						.subscribe(testSubscriber);
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertNoValues();
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertNoValues();
+            spinner.setValue("2015");
 
-				spinner.setValue("2015");
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(1);
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(1);
+            testSubscriber.assertValueAt(0, (changeEvent -> changeEvent.getSource() == spinner));
 
-				assertEquals(spinner, testSubscriber.getOnNextEvents().get(0).getSource());
+            spinner.setValue("2016");
 
-				spinner.setValue("2016");
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(2);
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(2);
+            testSubscriber.assertValueAt(1, (changeEvent -> changeEvent.getSource() == spinner));
+        }).awaitTerminal();
+    }
 
-				assertEquals(spinner, testSubscriber.getOnNextEvents().get(1).getSource());
-			}
-		}).awaitTerminal();
-	}
+    @Test
+    public void spinnerModel_observingValueChangeEvents() throws Throwable {
+        SwingTestHelper.create().runInEventDispatchThread(() -> {
+            TestObserver<ChangeEvent> testSubscriber = TestObserver.create();
 
-	@Test
-	public void spinnerModel_observingValueChangeEvents() throws Throwable {
-		SwingTestHelper.create().runInEventDispatchThread(new Action0() {
+            JSpinner spinner = createSpinner();
+            final SpinnerModel spinnerModel = spinner.getModel();
+            ChangeEventSource.fromChangeEventsOf(spinnerModel)
+                    .subscribe(testSubscriber);
 
-			@Override
-			public void call() {
-				TestSubscriber<ChangeEvent> testSubscriber = TestSubscriber.create();
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertNoValues();
 
-				JSpinner spinner = createSpinner();
-				final SpinnerModel spinnerModel = spinner.getModel();
-				ChangeEventSource.fromChangeEventsOf(spinnerModel)
-						.subscribe(testSubscriber);
+            spinner.setValue("2015");
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertNoValues();
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(1);
 
-				spinner.setValue("2015");
+            testSubscriber.assertValueAt(0, (changeEvent -> changeEvent.getSource() == spinnerModel));
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(1);
+            spinner.setValue("2016");
 
-				assertEquals(spinnerModel, testSubscriber.getOnNextEvents().get(0).getSource());
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(2);
 
-				spinner.setValue("2016");
+            testSubscriber.assertValueAt(1, (changeEvent -> changeEvent.getSource() == spinnerModel));
+        }).awaitTerminal();
+    }
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(2);
+    @Test
+    public void abstractButton_observingPressedEvents() throws Throwable {
+        SwingTestHelper.create().runInEventDispatchThread(() -> {
+            TestObserver<ChangeEvent> testSubscriber = TestObserver.create();
 
-				assertEquals(spinnerModel, testSubscriber.getOnNextEvents().get(1).getSource());
-			}
-		}).awaitTerminal();
-	}
+            AbstractButton button = new JButton("Click me");
+            ChangeEventSource.fromChangeEventsOf(button)
+                    .subscribe(testSubscriber);
 
-	@Test
-	public void abstractButton_observingPressedEvents() throws Throwable {
-		SwingTestHelper.create().runInEventDispatchThread(new Action0() {
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertNoValues();
 
-			@Override
-			public void call() {
-				TestSubscriber<ChangeEvent> testSubscriber = TestSubscriber.create();
+            button.getModel().setPressed(true);
 
-				AbstractButton button = new JButton("Click me");
-				ChangeEventSource.fromChangeEventsOf(button)
-						.subscribe(testSubscriber);
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(1);
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertNoValues();
+            testSubscriber.assertValueAt(0, (changeEvent -> changeEvent.getSource() == button));
 
-				button.getModel().setPressed(true);
+            button.getModel().setPressed(false);
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(1);
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(2);
 
-				assertEquals(button, testSubscriber.getOnNextEvents().get(0).getSource());
+            testSubscriber.assertValueAt(1, (changeEvent -> changeEvent.getSource() == button));
+        }).awaitTerminal();
+    }
 
-				button.getModel().setPressed(false);
+    @Test
+    public void buttonModel_observingPressedEvents() throws Throwable {
+        SwingTestHelper.create().runInEventDispatchThread(() -> {
+            TestObserver<ChangeEvent> testSubscriber = TestObserver.create();
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(2);
+            AbstractButton button = new JButton("Click me");
+            final ButtonModel buttonModel = button.getModel();
+            ChangeEventSource.fromChangeEventsOf(buttonModel)
+                    .subscribe(testSubscriber);
 
-				assertEquals(button, testSubscriber.getOnNextEvents().get(1).getSource());
-			}
-		}).awaitTerminal();
-	}
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertNoValues();
 
-	@Test
-	public void buttonModel_observingPressedEvents() throws Throwable {
-		SwingTestHelper.create().runInEventDispatchThread(new Action0() {
+            buttonModel.setPressed(true);
 
-			@Override
-			public void call() {
-				TestSubscriber<ChangeEvent> testSubscriber = TestSubscriber.create();
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(1);
 
-				AbstractButton button = new JButton("Click me");
-				final ButtonModel buttonModel = button.getModel();
-				ChangeEventSource.fromChangeEventsOf(buttonModel)
-						.subscribe(testSubscriber);
+            testSubscriber.assertValueAt(0, (changeEvent -> changeEvent.getSource() == buttonModel));
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertNoValues();
+            buttonModel.setPressed(false);
 
-				buttonModel.setPressed(true);
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(2);
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(1);
+            testSubscriber.assertValueAt(1, (changeEvent -> changeEvent.getSource() == buttonModel));
+        }).awaitTerminal();
+    }
 
-				assertEquals(buttonModel, testSubscriber.getOnNextEvents().get(0).getSource());
+    @Test
+    public void jViewPort_observingScrollEvents() throws Throwable {
+        SwingTestHelper.create().runInEventDispatchThread(() -> {
+            TestObserver<ChangeEvent> testSubscriber = TestObserver.create();
 
-				buttonModel.setPressed(false);
+            JTable table = new JTable(1000, 5);
+            JScrollPane scrollPane = new JScrollPane(table);
+            final JViewport viewPort = scrollPane.getViewport();
+            ChangeEventSource.fromChangeEventsOf(viewPort)
+                    .subscribe(testSubscriber);
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(2);
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertNoValues();
 
-				assertEquals(buttonModel, testSubscriber.getOnNextEvents().get(1).getSource());
-			}
-		}).awaitTerminal();
-	}
+            // scroll down
+            table.scrollRectToVisible(table.getCellRect(table.getModel().getRowCount() - 1, 0, false));
 
-	@Test
-	public void jViewPort_observingScrollEvents() throws Throwable {
-		SwingTestHelper.create().runInEventDispatchThread(new Action0() {
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(1);
 
-			@Override
-			public void call() {
-				TestSubscriber<ChangeEvent> testSubscriber = TestSubscriber.create();
+            testSubscriber.assertValueAt(0, (changeEvent -> changeEvent.getSource() == viewPort));
 
-				JTable table = new JTable(1000, 5);
-				JScrollPane scrollPane = new JScrollPane(table);
-				final JViewport viewPort = scrollPane.getViewport();
-				ChangeEventSource.fromChangeEventsOf(viewPort)
-						.subscribe(testSubscriber);
+            // scroll up
+            table.scrollRectToVisible(table.getCellRect(0, 0, false));
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertNoValues();
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(2);
 
-				// scoll down
-				table.scrollRectToVisible(table.getCellRect(table.getModel().getRowCount() - 1, 0, false));
+            testSubscriber.assertValueAt(1, (changeEvent -> changeEvent.getSource() == viewPort));
+        }).awaitTerminal();
+    }
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(1);
+    @Test
+    public void colorSelectionModel_observingColorChooserEvents() throws Throwable {
+        SwingTestHelper.create().runInEventDispatchThread(() -> {
+            TestObserver<ChangeEvent> testSubscriber = TestObserver.create();
 
-				assertEquals(viewPort, testSubscriber.getOnNextEvents().get(0).getSource());
+            JColorChooser colorChooser = new JColorChooser();
+            final ColorSelectionModel colorSelectionModel = colorChooser.getSelectionModel();
+            ChangeEventSource.fromChangeEventsOf(colorSelectionModel)
+                    .subscribe(testSubscriber);
 
-				// scoll up
-				table.scrollRectToVisible(table.getCellRect(0, 0, false));
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertNoValues();
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(2);
+            colorChooser.setColor(Color.BLUE);
 
-				assertEquals(viewPort, testSubscriber.getOnNextEvents().get(1).getSource());
-			}
-		}).awaitTerminal();
-	}
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(1);
 
-	@Test
-	public void colorSelectionModel_observingColorChooserEvents() throws Throwable {
-		SwingTestHelper.create().runInEventDispatchThread(new Action0() {
+            testSubscriber.assertValueAt(0, (changeEvent -> changeEvent.getSource() == colorSelectionModel));
 
-			@Override
-			public void call() {
-				TestSubscriber<ChangeEvent> testSubscriber = TestSubscriber.create();
+            colorChooser.setColor(Color.GREEN);
 
-				JColorChooser colorChooser = new JColorChooser();
-				final ColorSelectionModel colorSelectionModel = colorChooser.getSelectionModel();
-				ChangeEventSource.fromChangeEventsOf(colorSelectionModel)
-						.subscribe(testSubscriber);
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(2);
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertNoValues();
+            testSubscriber.assertValueAt(1, (changeEvent -> changeEvent.getSource() == colorSelectionModel));
+        }).awaitTerminal();
+    }
 
-				colorChooser.setColor(Color.BLUE);
+    @Test
+    public void jProgressBar_observingProgressEvents() throws Throwable {
+        SwingTestHelper.create().runInEventDispatchThread(() -> {
+            TestObserver<ChangeEvent> testSubscriber = TestObserver.create();
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(1);
+            JProgressBar progressBar = new JProgressBar();
+            progressBar.setMinimum(0);
+            progressBar.setMaximum(10);
+            ChangeEventSource.fromChangeEventsOf(progressBar)
+                    .subscribe(testSubscriber);
 
-				assertEquals(colorSelectionModel, testSubscriber.getOnNextEvents().get(0).getSource());
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertNoValues();
 
-				colorChooser.setColor(Color.GREEN);
+            progressBar.setValue(1);
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(2);
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(1);
 
-				assertEquals(colorSelectionModel, testSubscriber.getOnNextEvents().get(1).getSource());
-			}
-		}).awaitTerminal();
-	}
+            testSubscriber.assertValueAt(0, (changeEvent -> changeEvent.getSource() == progressBar));
 
-	@Test
-	public void jProgressBar_observingProgressEvents() throws Throwable {
-		SwingTestHelper.create().runInEventDispatchThread(new Action0() {
+            progressBar.setValue(2);
 
-			@Override
-			public void call() {
-				TestSubscriber<ChangeEvent> testSubscriber = TestSubscriber.create();
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(2);
 
-				JProgressBar progressBar = new JProgressBar();
-				progressBar.setMinimum(0);
-				progressBar.setMaximum(10);
-				ChangeEventSource.fromChangeEventsOf(progressBar)
-						.subscribe(testSubscriber);
+            testSubscriber.assertValueAt(1, (changeEvent -> changeEvent.getSource() == progressBar));
+        }).awaitTerminal();
+    }
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertNoValues();
+    @Test
+    public void boundedRangeModel_observingProgressEvents() throws Throwable {
+        SwingTestHelper.create().runInEventDispatchThread(() -> {
+            TestObserver<ChangeEvent> testSubscriber = TestObserver.create();
 
-				progressBar.setValue(1);
+            JProgressBar progressBar = new JProgressBar();
+            progressBar.setMinimum(0);
+            progressBar.setMaximum(10);
+            final BoundedRangeModel boundedRangeModel = progressBar.getModel();
+            ChangeEventSource.fromChangeEventsOf(boundedRangeModel)
+                    .subscribe(testSubscriber);
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(1);
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertNoValues();
 
-				assertEquals(progressBar, testSubscriber.getOnNextEvents().get(0).getSource());
+            progressBar.setValue(1);
 
-				progressBar.setValue(2);
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(1);
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(2);
+            testSubscriber.assertValueAt(0, (changeEvent -> changeEvent.getSource() == boundedRangeModel));
 
-				assertEquals(progressBar, testSubscriber.getOnNextEvents().get(1).getSource());
-			}
-		}).awaitTerminal();
-	}
+            progressBar.setValue(2);
 
-	@Test
-	public void boundedRangeModel_observingProgressEvents() throws Throwable {
-		SwingTestHelper.create().runInEventDispatchThread(new Action0() {
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertValueCount(2);
 
-			@Override
-			public void call() {
-				TestSubscriber<ChangeEvent> testSubscriber = TestSubscriber.create();
+            testSubscriber.assertValueAt(1, (changeEvent -> changeEvent.getSource() == boundedRangeModel));
+        }).awaitTerminal();
+    }
 
-				JProgressBar progressBar = new JProgressBar();
-				progressBar.setMinimum(0);
-				progressBar.setMaximum(10);
-				final BoundedRangeModel boundedRangeModel = progressBar.getModel();
-				ChangeEventSource.fromChangeEventsOf(boundedRangeModel)
-						.subscribe(testSubscriber);
+    @Test
+    public void unsubscribeRemovesRowSelectionListener() throws Throwable {
+        SwingTestHelper.create().runInEventDispatchThread(() -> {
+            TestObserver<ChangeEvent> testSubscriber = TestObserver.create();
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertNoValues();
+            JTabbedPane tabbedPane = createTabbedPane();
+            int numberOfListenersBefore = tabbedPane.getChangeListeners().length;
 
-				progressBar.setValue(1);
+            ChangeEventSource.fromChangeEventsOf(tabbedPane)
+                    .subscribe(testSubscriber);
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(1);
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertNoValues();
 
-				assertEquals(boundedRangeModel, testSubscriber.getOnNextEvents().get(0).getSource());
+            testSubscriber.dispose();
 
-				progressBar.setValue(2);
+            assertTrue(testSubscriber.isDisposed());
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertValueCount(2);
+            tabbedPane.setSelectedIndex(2);
 
-				assertEquals(boundedRangeModel, testSubscriber.getOnNextEvents().get(1).getSource());
-			}
-		}).awaitTerminal();
-	}
+            testSubscriber.assertNoErrors();
+            testSubscriber.assertNoValues();
 
-	@Test
-	public void unsubscribeRemovesRowSelectionListener() throws Throwable {
-		SwingTestHelper.create().runInEventDispatchThread(new Action0() {
+            assertEquals(numberOfListenersBefore, tabbedPane.getChangeListeners().length);
+        }).awaitTerminal();
+    }
 
-			@Override
-			public void call() {
-				TestSubscriber<ChangeEvent> testSubscriber = TestSubscriber.create();
+    @Test
+    public void fromChangeEventsOf_usingObjectWithoutExpectedChangeListenerSupport_failsFastWithException() throws Throwable {
+        SwingTestHelper.create().runInEventDispatchThread(() -> {
+            try {
+                ChangeEventSource.fromChangeEventsOf("doesNotSupportChangeListeners").subscribe(TestObserver.create());
+                fail(IllegalArgumentException.class.getSimpleName() + " expected");
+            } catch (IllegalArgumentException ex) {
+                assertEquals("Class 'java.lang.String' has not the expected signature to support change listeners in rx.swing.sources.ChangeEventSource",
+                        ex.getMessage());
+            }
 
-				JTabbedPane tabbedPane = createTabbedPane();
-				int numberOfListenersBefore = tabbedPane.getChangeListeners().length;
+            Object changeEventSource = null;
+            try {
+                changeEventSource = new Object() {
+                    @SuppressWarnings({"unused", "EmptyMethod"})
+                    private void addChangeListener(ChangeListener changeListener) {/* no-op */ }
 
-				Subscription sub = ChangeEventSource.fromChangeEventsOf(tabbedPane)
-						.subscribe(testSubscriber);
+                    @SuppressWarnings({"unused", "EmptyMethod"})
+                    private void removeChangeListener(ChangeListener changeListener) {/* no-op */ }
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertNoValues();
+                    @Override
+                    public String toString() {
+                        return "hasWrongMethodModifiers";
+                    }
+                };
+                ChangeEventSource.fromChangeEventsOf(changeEventSource).subscribe(TestObserver.create());
+                fail(IllegalArgumentException.class.getSimpleName() + " expected");
+            } catch (IllegalArgumentException ex) {
+                assert changeEventSource != null;
+                assertEquals("Class '" + changeEventSource.getClass().getName() + "' has not the expected signature to support change listeners in rx.swing.sources.ChangeEventSource",
+                        ex.getMessage());
+            }
+        }).awaitTerminal();
+    }
 
-				sub.unsubscribe();
+    @Test
+    public void issuesWithAddingChangeListenerOnSubscriptionArePropagatedAsError() throws Throwable {
+        SwingTestHelper.create().runInEventDispatchThread(() -> {
+            TestObserver<ChangeEvent> testSubscriber = TestObserver.create();
 
-				testSubscriber.assertUnsubscribed();
+            JProgressBar brokenProgressBarSubClass = new JProgressBar() {
+                @Override
+                public void addChangeListener(ChangeListener listener) {
+                    if (listener.getClass().getName().contains(ChangeEventSource.class.getSimpleName())) {
+                        throw new RuntimeException("Totally broken");
+                    }
+                }
+            };
+            ChangeEventSource.fromChangeEventsOf(brokenProgressBarSubClass)
+                    .subscribe(testSubscriber);
 
-				tabbedPane.setSelectedIndex(2);
+            testSubscriber.assertNoValues();
 
-				testSubscriber.assertNoErrors();
-				testSubscriber.assertNoValues();
-
-				assertEquals(numberOfListenersBefore, tabbedPane.getChangeListeners().length);
-			}
-		}).awaitTerminal();
-	}
-
-	@Test
-	public void fromChangeEventsOf_usingObjectWithoutExpectedChangeListenerSupport_failsFastWithException() throws Throwable {
-		SwingTestHelper.create().runInEventDispatchThread(new Action0() {
-
-			@Override
-			public void call() {
-				try {
-					ChangeEventSource.fromChangeEventsOf("doesNotSupportChangeListeners").subscribe(TestSubscriber.create());
-					fail(IllegalArgumentException.class.getSimpleName() + " expected");
-				} catch (IllegalArgumentException ex) {
-					assertEquals("Class 'java.lang.String' has not the expected signature to support change listeners in rx.swing.sources.ChangeEventSource",
-							ex.getMessage());
-				}
-
-				Object changeEventSource = null;
-				try {
-					changeEventSource = new Object() {
-						private void addChangeListener(ChangeListener changeListener) {/* no-op */ }
-
-						private void removeChangeListener(ChangeListener changeListener) {/* no-op */ }
-
-						@Override
-						public String toString() {
-							return "hasWrongMethodModifiers";
-						}
-					};
-					ChangeEventSource.fromChangeEventsOf(changeEventSource).subscribe(TestSubscriber.create());
-					fail(IllegalArgumentException.class.getSimpleName() + " expected");
-				} catch (IllegalArgumentException ex) {
-					assertEquals("Class '" + changeEventSource.getClass().getName() + "' has not the expected signature to support change listeners in rx.swing.sources.ChangeEventSource",
-							ex.getMessage());
-				}
-			}
-		}).awaitTerminal();
-	}
-
-	@Test
-	public void issuesWithAddingChangeListenerOnSubscriptionArePropagatedAsError() throws Throwable {
-		SwingTestHelper.create().runInEventDispatchThread(new Action0() {
-
-			@Override
-			public void call() {
-				TestSubscriber<ChangeEvent> testSubscriber = TestSubscriber.create();
-
-				JProgressBar brokenProgressBarSubClass = new JProgressBar() {
-					@Override
-					public void addChangeListener(ChangeListener listener) {
-						if (listener.getClass().getName().contains(ChangeEventSource.class.getSimpleName())) {
-							throw new RuntimeException("Totally broken");
-						}
-					}
-				};
-				ChangeEventSource.fromChangeEventsOf(brokenProgressBarSubClass)
-						.subscribe(testSubscriber);
-
-				testSubscriber.assertNoValues();
-
-				List<Throwable> onErrorEvents = testSubscriber.getOnErrorEvents();
-				assertEquals(1, onErrorEvents.size());
-				assertTrue(onErrorEvents.get(0) instanceof RuntimeException);
-				assertEquals("Call of addChangeListener via reflection failed.", onErrorEvents.get(0).getMessage());
-				assertEquals(InvocationTargetException.class, onErrorEvents.get(0).getCause().getClass());
-			}
-		}).awaitTerminal();
-	}
-
-	private static JTabbedPane createTabbedPane() {
-		final JTabbedPane tabbedPane = new JTabbedPane();
-		tabbedPane.addTab("tab1", new JPanel());
-		tabbedPane.addTab("tab2", new JPanel());
-		tabbedPane.addTab("tab3", new JPanel());
-		return tabbedPane;
-	}
-
-	private static JSpinner createSpinner() {
-		List<String> yearStrings = Arrays.asList("2014", "2015", "2016");
-		SpinnerListModel spinnerListModel = new SpinnerListModel(yearStrings);
-		return new JSpinner(spinnerListModel);
-	}
+            testSubscriber.assertError(RuntimeException.class);
+            testSubscriber.assertError((error) ->
+                    Objects.equals(error.getMessage(), "Call of addChangeListener via reflection failed.")
+            );
+            testSubscriber.assertError((error) ->
+                    error.getCause().getClass() == InvocationTargetException.class
+            );
+        }).awaitTerminal();
+    }
 }
